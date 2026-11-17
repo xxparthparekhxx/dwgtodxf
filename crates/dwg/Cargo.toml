@@ -1,0 +1,20 @@
+[package]
+name = "dwg"
+description = "Fast pure-Rust DWG reader and DXF writer"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "../../README.md"
+keywords = ["dwg", "dxf", "cad", "autocad"]
+categories = ["parser-implementations", "graphics"]
+
+[lib]
+name = "dwg"
+
+[[bin]]
+name = "dwg2dxf"
+path = "src/bin/dwg2dxf.rs"
+
+[dependencies]
+rayon = "1"

@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  # Sample DWGs used as test input only (not redistributed)
+  LIBREDWG_VERSION: "0.13.3"
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust:
+    name: Rust tests + fuzz
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Cache test DWGs
+        uses: actions/cache@v4
+        with:
+          path: ~/testdata
+          key: libredwg-testdata-${{ env.LIBREDWG_VERSION }}
+      - name: Fetch test DWGs
+        run: |
+          if [ ! -d ~/testdata/test-data ]; then
+            mkdir -p ~/testdata
+            curl -sSfL -o /tmp/libredwg.tar.xz \
+              "https://github.com/LibreDWG/libredwg/releases/download/${LIBREDWG_VERSION}/libredwg-${LIBREDWG_VERSION}.tar.xz"
+            tar -xf /tmp/libredwg.tar.xz -C /tmp --wildcards '*/test/test-data/*'
+            mv /tmp/libredwg-${LIBREDWG_VERSION}/test/test-data ~/testdata/
+          fi
+          echo "DWG_TEST_DATA=$HOME/testdata/test-data" >> "$GITHUB_ENV"
+      - name: Clippy
+        run: cargo clippy -p dwg --release -- -D clippy::correctness
+      - name: Tests (all samples, corruption, fuzzing)
+        run: cargo test -p dwg --release
+        env:
+          DWG_FUZZ_ITERS: "40"
+
+  python:
+    name: Python ${{ matrix.python }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Cache test DWGs
+        if: runner.os == 'Linux'
+        uses: actions/cache@v4
+        with:
+          path: ~/testdata
+          key: libredwg-testdata-${{ env.LIBREDWG_VERSION }}
+      - name: Fetch test DWGs
+        if: runner.os == 'Linux'
+        run: |
+          if [ ! -d ~/testdata/test-data ]; then
+            mkdir -p ~/testdata
+            curl -sSfL -o /tmp/libredwg.tar.xz \
+              "https://github.com/LibreDWG/libredwg/releases/download/${LIBREDWG_VERSION}/libredwg-${LIBREDWG_VERSION}.tar.xz"
+            tar -xf /tmp/libredwg.tar.xz -C /tmp --wildcards '*/test/test-data/*'
+            mv /tmp/libredwg-${LIBREDWG_VERSION}/test/test-data ~/testdata/
+          fi
+          echo "DWGTODXF_TEST_DATA=$HOME/testdata/test-data" >> "$GITHUB_ENV"
+      - name: Build and install
+        run: pip install ".[dev]"
+      - name: Tests
+        run: pytest -q
