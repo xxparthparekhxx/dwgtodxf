@@ -1,7 +1,7 @@
 # dwgtodxf
 
 [![CI](https://github.com/xxparthparekhxx/dwgtodxf/actions/workflows/ci.yml/badge.svg)](https://github.com/xxparthparekhxx/dwgtodxf/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/dwgtodxf)](https://pypi.org/project/dwgtodxf/)
+[![PyPI](https://img.shields.io/pypi/v/dwgtodxf?label=pypi)](https://pypi.org/project/dwgtodxf/)
 
 Fast DWG → DXF (and PDF) conversion for Python, built on its own DWG decoder
 written in Rust. No ODA File Converter, no LibreDWG, no external programs.
